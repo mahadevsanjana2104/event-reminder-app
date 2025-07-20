@@ -11,11 +11,10 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(bodyParser.json());
 
-
+// Root route for testing
 app.get('/', (req, res) => {
   res.send('✅ Email Reminder Backend is Running');
 });
-
 
 app.post('/send-reminder', (req, res) => {
   const { title, datetime, senderEmail, recipientEmail, customMessage } = req.body;
@@ -24,12 +23,19 @@ app.post('/send-reminder', (req, res) => {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
+  // Format the datetime to a human-readable string
+  const formattedDateTime = new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata'
+  }).format(new Date(datetime));
 
+  // Setup nodemailer transporter
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL,        
-      pass: process.env.PASSWORD     
+      user: process.env.EMAIL_USER,  // Set in .env
+      pass: process.env.EMAIL_PASS   // Set in .env
     }
   });
 
@@ -37,9 +43,19 @@ app.post('/send-reminder', (req, res) => {
     from: senderEmail,
     to: recipientEmail,
     subject: `Message from ${senderEmail} - Event: ${title}`,
-    text: `Hi there!👋🏼,\n\nYou've received a message regarding "${title}" happening at ${datetime}.\n\nMessage:\n${customMessage}\n\nFrom: ${senderEmail}\n\n- Event Reminder App`
+    text: `Hi there! 👋🏼
+
+You've received a reminder for the event "${title}" scheduled at ${formattedDateTime}.
+
+Message:
+${customMessage}
+
+From: ${senderEmail}
+
+- Event Reminder App`
   };
 
+  // Send email
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.error('❌ Error sending email:', error);
@@ -51,9 +67,7 @@ app.post('/send-reminder', (req, res) => {
   });
 });
 
-
+// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
-
-
